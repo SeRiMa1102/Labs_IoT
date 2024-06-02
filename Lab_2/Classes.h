@@ -46,13 +46,13 @@ private:
 class Node {
 public:
     virtual ~Node() {}
-    virtual double evaluate() const = 0;
+    virtual double evaluate(const std::map<std::string, double>& variables) const = 0;
 };
 
 class NumberNode : public Node {
 public:
     NumberNode(double val);
-    virtual double evaluate() const override;
+    virtual double evaluate(const std::map<std::string, double>&) const override;
 
 private:
     double value;
@@ -60,20 +60,19 @@ private:
 
 class ParamNode : public Node {
 public:
-    ParamNode(const std::string& name, std::map<std::string, double>& vars);
+    ParamNode(const std::string& name);
 
-    virtual double evaluate() const override;
+    virtual double evaluate(const std::map<std::string, double>&) const override;
 
 private:
     std::string varName;
-    std::map<std::string, double>& variables;
 };
 
 class AssignNode : public Node {
 public:
     AssignNode(const std::string& name, std::unique_ptr<Node> expr, std::map<std::string, double>& vars);
 
-    virtual double evaluate() const override;
+    virtual double evaluate(const std::map<std::string, double>&) const override;
 
 private:
     std::string varName;
@@ -85,7 +84,7 @@ class BinaryOperationNode : public Node {
 public:
     BinaryOperationNode(OPERANDS op, std::unique_ptr<Node> l, std::unique_ptr<Node> r);
 
-    virtual double evaluate() const override;
+    virtual double evaluate(const std::map<std::string, double>&) const override;
 
 private:
     OPERANDS operation;
@@ -97,11 +96,22 @@ class FunctionNode : public Node {
 public:
     FunctionNode(OPERANDS func, std::unique_ptr<Node> arg);
 
-    virtual double evaluate() const override;
+    virtual double evaluate(const std::map<std::string, double>&) const override;
 
 private:
     OPERANDS function;
     std::unique_ptr<Node> argument;
+};
+
+class PowFunctionNode : public Node {
+public:
+    PowFunctionNode(std::unique_ptr<Node> base, std::unique_ptr<Node> exponent);
+
+    virtual double evaluate(const std::map<std::string, double>&) const override;
+
+private:
+    std::unique_ptr<Node> base;
+    std::unique_ptr<Node> exponent;
 };
 
 class Parser {
@@ -109,6 +119,8 @@ public:
     Parser(const std::string& str, std::map<std::string, double>& map);
 
     std::unique_ptr<Node> parse();
+
+    const std::map<std::string, double>& getVariables() const;
 
 private:
     Token getNextToken();
@@ -118,7 +130,7 @@ private:
     std::unique_ptr<Node> factor();
     void eat(OPERANDS type);
 
-    std::map<std::string, double>& map_;
+    std::map<std::string, double>& variables;
 
     Tokenizer tokenizer;
     Token currentToken;

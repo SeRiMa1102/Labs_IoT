@@ -83,20 +83,25 @@ size_t  Tokenizer::sizeTokens() const {
 }
 
 NumberNode::NumberNode(double val) : value(val) {}
-double NumberNode::evaluate() const{ return value; }
+double NumberNode::evaluate(const std::map<std::string, double>&) const{ return value; }
 
 
-ParamNode::ParamNode(const std::string& name, std::map<std::string, double>& vars):varName({name, 0}), variables(vars) {}
+ParamNode::ParamNode(const std::string& name):varName(name) {}
 
-double ParamNode::evaluate() const {
-    return variables.at(varName);
+double ParamNode::evaluate(const std::map<std::string, double>& variables) const {
+    auto it = variables.find(varName);
+    if (it != variables.end()) {
+        return it->second;
+    } else {
+        throw std::runtime_error("Variable not found: " + varName);
+    }
 }
 
 AssignNode::AssignNode(const std::string& name, std::unique_ptr<Node> expr, std::map<std::string, double>& vars)
     : varName(name), expression(std::move(expr)), variables(vars) {}
 
-double AssignNode::evaluate() const {
-    double value = expression->evaluate();
+double AssignNode::evaluate(const std::map<std::string, double>&) const {
+    double value = expression->evaluate(variables);
     variables[varName] = value;
     return value;
 }
@@ -106,16 +111,16 @@ double AssignNode::evaluate() const {
 BinaryOperationNode::BinaryOperationNode(OPERANDS op, std::unique_ptr<Node> l, std::unique_ptr<Node> r)
         : operation(op), left(std::move(l)), right(std::move(r)) {}
 
-double BinaryOperationNode::evaluate() const {
+double BinaryOperationNode::evaluate(const std::map<std::string, double>& variables) const {
     switch (operation) {
     case OPERANDS::plus:
-        return left->evaluate() + right->evaluate();
+        return left->evaluate(variables) + right->evaluate(variables);
     case OPERANDS::minus:
-        return left->evaluate() - right->evaluate();
+        return left->evaluate(variables) - right->evaluate(variables);
     case OPERANDS::mul:
-        return left->evaluate() * right->evaluate();
+        return left->evaluate(variables) * right->evaluate(variables);
     case OPERANDS::del:
-        return left->evaluate() / right->evaluate();
+        return left->evaluate(variables) / right->evaluate(variables);
     default:
         throw std::runtime_error("Invalid operator in expression tree.");
     }
@@ -125,45 +130,44 @@ double BinaryOperationNode::evaluate() const {
 FunctionNode::FunctionNode(OPERANDS func, std::unique_ptr<Node> arg)
     : function(func), argument(std::move(arg)) {}
 
-double FunctionNode::evaluate() const {
+double FunctionNode::evaluate(const std::map<std::string, double>& variables) const {
     switch (function) {
     case OPERANDS::log:
-        return std::log(argument->evaluate());
+        return std::log(argument->evaluate(variables));
     case OPERANDS::sin:
-        return std::sin(argument->evaluate());
+        return std::sin(argument->evaluate(variables));
     // case OPERANDS::pow:
     //     throw std::runtime_error("pow function needs two arguments.");
     case OPERANDS::sqrt:
-        return std::sqrt(argument->evaluate());
+        return std::sqrt(argument->evaluate(variables));
     case OPERANDS::abs:
-        return std::abs(argument->evaluate());
+        return std::abs(argument->evaluate(variables));
     default:
         throw std::runtime_error("Invalid function in expression tree.");
     }
 }
 
-class PowFunctionNode : public Node {
-public:
-    PowFunctionNode(std::unique_ptr<Node> base, std::unique_ptr<Node> exponent)
-        : base(std::move(base)), exponent(std::move(exponent)) {}
 
-    virtual double evaluate() const override {
-        return std::pow(base->evaluate(), exponent->evaluate());
-    }
+PowFunctionNode::PowFunctionNode(std::unique_ptr<Node> base, std::unique_ptr<Node> exponent)
+    : base(std::move(base)), exponent(std::move(exponent)) {}
 
-private:
-    std::unique_ptr<Node> base;
-    std::unique_ptr<Node> exponent;
-};
+double PowFunctionNode::evaluate(const std::map<std::string, double>& variables) const{
+    return std::pow(base->evaluate(variables), exponent->evaluate(variables));
+}
 
 
 
-Parser::Parser(const std::string& str, std::map<std::string, double>& map) : map_(map), tokenizer(Tokenizer(str)), current_index(0) {
+
+Parser::Parser(const std::string& str, std::map<std::string, double>& map) : variables(map), tokenizer(Tokenizer(str)), current_index(0) {
     currentToken = getNextToken();
 }
 
 std::unique_ptr<Node> Parser::parse() {
     return assignment();
+}
+
+const std::map<std::string, double>& Parser::getVariables() const {
+    return variables;
 }
 
 Token Parser::getNextToken(){
@@ -179,9 +183,10 @@ std::unique_ptr<Node> Parser::assignment() {
         eat(OPERANDS::param);
         if (currentToken.op == OPERANDS::assign) {
             eat(OPERANDS::assign);
-            return std::make_unique<AssignNode>(varName, expression(), map_);
+            return std::make_unique<AssignNode>(varName, expression(), variables);
         } else {
-            throw std::runtime_error("Invalid assignment syntax.");
+            // Возвращаем узел переменной, если это не присваивание
+            return std::make_unique<ParamNode>(varName);
         }
     }
     return expression();
@@ -245,9 +250,8 @@ std::unique_ptr<Node> Parser::factor() {
 
 
     } else if (token.op == OPERANDS::param) {
-        std::string varName = token.param_name;
         eat(OPERANDS::param);
-        return std::make_unique<ParamNode>(varName, map_);
+        return std::make_unique<ParamNode>(token.param_name);
 
     } else {
         throw std::runtime_error("Invalid expression.");

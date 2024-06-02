@@ -24,7 +24,7 @@ int main()
     std::map<std::string, double> params;
     while(true){
         std::string input;
-        std::cout << "Insert of print exit: ";
+        std::cout << "Insert or print \"exit\": ";
         std::getline(std::cin, input); // Считывание строки до символа новой строки
         if (input == "exit"){
             break;
@@ -40,7 +40,7 @@ int main()
             std::string res = item;
             Parser parser(res, params);
             std::unique_ptr<Node> root = parser.parse();
-            std::cout << "Result: " << root->evaluate() << std::endl;
+            std::cout << "Result: " << root->evaluate(parser.getVariables()) << std::endl;
         }
     }
     return 0;
