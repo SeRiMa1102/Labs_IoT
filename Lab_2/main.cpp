@@ -31,9 +31,10 @@ int main()
         }
         char delimiter = ';';
         std::vector<std::string> expressions = splitString(input, delimiter);
+        std::cout << expressions.size() << std::endl;
 
-        for (const auto& item : expressions){
-
+        for (size_t i = 0; i < expressions.size(); i++){
+            const auto& item = expressions[i];
             if (item.empty()){
                 continue;
             }
@@ -41,7 +42,17 @@ int main()
             Parser parser(res, params);
             std::unique_ptr<Node> root = parser.parse();
             std::cout << "Result: " << root->evaluate(parser.getVariables()) << std::endl;
+
+            if (i == expressions.size() - 2){
+                // Печать значений всех переменных
+                const std::map<std::string, double>& variables = parser.getVariables();
+                for (const auto& var : variables) {
+                    std::cout << var.first << " = " << var.second << std::endl;
+                }
+            }
+
         }
+
     }
     return 0;
 }
