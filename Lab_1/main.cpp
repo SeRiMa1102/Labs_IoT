@@ -3,9 +3,9 @@
 #include <sstream>
 #include <string>
 #include <stdexcept>
-#include <algorithm> // Для std::remove_if
-#include <cctype>    // Для std::isspace
-#include <regex>     // Для std::regex_replace
+#include <algorithm>
+#include <cctype>
+#include <regex>
 
 double arithmeticOp(double left, const std::string& op, double right) {
     if (op == "+") return left + right;
@@ -52,19 +52,24 @@ int main(int argc, char *argv[]) {
         stream >> num_left >> op >> num_right;
 
         try {
+            //Проверка возможности чтения
             if (stream.fail() || !stream.eof()) {
                 throw std::invalid_argument("Invalid input format");
             }
 
+            //Проверка оператора (математический)
             if (op == "+" || op == "-" || op == "*" || op == "/") {
                 double result = arithmeticOp(num_left, op, num_right);
                 std::cout << "Result: " << result << std::endl;
+            //Проверка оператора (сравнение)
             } else if (op == "<" || op == ">" || op == "<=" || op == ">=" || op == "==" || op == "!=") {
                 bool result = comparisonOp(num_left, op, num_right);
                 std::cout << "Result: " << std::boolalpha << result << std::endl;
+            //Выброс исключения
             } else {
                 throw std::invalid_argument("Unknown operator");
             }
+        //Выброс исключения общего
         } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;
         }
