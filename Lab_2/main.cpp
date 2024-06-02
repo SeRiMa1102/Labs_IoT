@@ -21,6 +21,7 @@ std::vector<std::string> splitString(const std::string& str, char delimiter) {
 
 int main()
 {
+    std::map<std::string, double> params;
     while(true){
         std::string input;
         std::cout << "Insert of print exit: ";
@@ -37,9 +38,7 @@ int main()
                 continue;
             }
             std::string res = item;
-            res += ')';
-            res.insert(0, "(");
-            Parser parser(res);
+            Parser parser(res, params);
             std::unique_ptr<Node> root = parser.parse();
             std::cout << "Result: " << root->evaluate() << std::endl;
         }
@@ -47,9 +46,7 @@ int main()
     return 0;
 }
 
-
-//y = sin(M)*M*(M+(M-M))/M
-// expression -> term + term
-// term -> factor * factor
-// factor -> number \ expression
-
+//param[0] (!=!)[1] (***********);
+// if [0] == param;
+// if [1] == "="'
+//     eval

@@ -62,6 +62,9 @@ Tokenizer::Tokenizer(const std::string& str) {
             case ',':
                 tok.op = OPERANDS::comma;
                 break;
+            case '=':
+                tok.op = OPERANDS::assign;
+                break;
             default:
                 break;
             }
@@ -81,6 +84,23 @@ size_t  Tokenizer::sizeTokens() const {
 
 NumberNode::NumberNode(double val) : value(val) {}
 double NumberNode::evaluate() const{ return value; }
+
+
+ParamNode::ParamNode(const std::string& name, std::map<std::string, double>& vars):varName({name, 0}), variables(vars) {}
+
+double ParamNode::evaluate() const {
+    return variables.at(varName);
+}
+
+AssignNode::AssignNode(const std::string& name, std::unique_ptr<Node> expr, std::map<std::string, double>& vars)
+    : varName(name), expression(std::move(expr)), variables(vars) {}
+
+double AssignNode::evaluate() const {
+    double value = expression->evaluate();
+    variables[varName] = value;
+    return value;
+}
+
 
 
 BinaryOperationNode::BinaryOperationNode(OPERANDS op, std::unique_ptr<Node> l, std::unique_ptr<Node> r)
@@ -138,19 +158,33 @@ private:
 
 
 
-Parser::Parser(const std::string& str) : current_index(0), tokenizer(Tokenizer(str)) {
+Parser::Parser(const std::string& str, std::map<std::string, double>& map) : map_(map), tokenizer(Tokenizer(str)), current_index(0) {
     currentToken = getNextToken();
 }
 
 std::unique_ptr<Node> Parser::parse() {
-    return expression();
+    return assignment();
 }
 
 Token Parser::getNextToken(){
     if (current_index>=tokenizer.sizeTokens()){
-        return {OPERANDS::c_bra, 0, ""};
+        return {OPERANDS::end, 0, ""};
     }
     return tokenizer.getToken(current_index++);
+}
+
+std::unique_ptr<Node> Parser::assignment() {
+    if (currentToken.op == OPERANDS::param) {
+        std::string varName = currentToken.param_name;
+        eat(OPERANDS::param);
+        if (currentToken.op == OPERANDS::assign) {
+            eat(OPERANDS::assign);
+            return std::make_unique<AssignNode>(varName, expression(), map_);
+        } else {
+            throw std::runtime_error("Invalid assignment syntax.");
+        }
+    }
+    return expression();
 }
 
 std::unique_ptr<Node> Parser::expression() {
@@ -191,6 +225,9 @@ std::unique_ptr<Node> Parser::factor() {
         auto result = expression();
         eat(OPERANDS::c_bra);
         return result;
+
+
+
     } else if (token.op == OPERANDS::log || token.op == OPERANDS::sin || token.op == OPERANDS::abs || token.op == OPERANDS::sqrt) {
         eat(token.op);
         eat(OPERANDS::o_bra);
@@ -205,6 +242,13 @@ std::unique_ptr<Node> Parser::factor() {
         auto exponent = expression();
         eat(OPERANDS::c_bra);
         return std::make_unique<PowFunctionNode>(std::move(base), std::move(exponent));
+
+
+    } else if (token.op == OPERANDS::param) {
+        std::string varName = token.param_name;
+        eat(OPERANDS::param);
+        return std::make_unique<ParamNode>(varName, map_);
+
     } else {
         throw std::runtime_error("Invalid expression.");
     }

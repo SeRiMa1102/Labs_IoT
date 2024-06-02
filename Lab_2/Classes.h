@@ -5,7 +5,7 @@
 #include <memory>
 #include <stdexcept>
 #include <cmath>
-
+#include <map>
 enum class OPERANDS{
     plus,
     minus,
@@ -21,7 +21,8 @@ enum class OPERANDS{
     number,
     param,
     assign,
-    comma
+    comma,
+    end
 };
 
 struct Token{
@@ -33,11 +34,8 @@ struct Token{
 class Tokenizer{
 public:
     Tokenizer(const std::string& str);
-
     Token getToken(size_t i) const;
-
     size_t  sizeTokens() const;
-
 private:
     std::vector<Token> tokens;
 };
@@ -58,6 +56,29 @@ public:
 
 private:
     double value;
+};
+
+class ParamNode : public Node {
+public:
+    ParamNode(const std::string& name, std::map<std::string, double>& vars);
+
+    virtual double evaluate() const override;
+
+private:
+    std::string varName;
+    std::map<std::string, double>& variables;
+};
+
+class AssignNode : public Node {
+public:
+    AssignNode(const std::string& name, std::unique_ptr<Node> expr, std::map<std::string, double>& vars);
+
+    virtual double evaluate() const override;
+
+private:
+    std::string varName;
+    std::unique_ptr<Node> expression;
+    std::map<std::string, double>& variables;
 };
 
 class BinaryOperationNode : public Node {
@@ -85,16 +106,19 @@ private:
 
 class Parser {
 public:
-    Parser(const std::string& str);
+    Parser(const std::string& str, std::map<std::string, double>& map);
 
     std::unique_ptr<Node> parse();
 
 private:
     Token getNextToken();
+    std::unique_ptr<Node> assignment();
     std::unique_ptr<Node> expression();
     std::unique_ptr<Node> term();
     std::unique_ptr<Node> factor();
     void eat(OPERANDS type);
+
+    std::map<std::string, double>& map_;
 
     Tokenizer tokenizer;
     Token currentToken;
