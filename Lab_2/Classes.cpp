@@ -111,8 +111,8 @@ double FunctionNode::evaluate() const {
         return std::log(argument->evaluate());
     case OPERANDS::sin:
         return std::sin(argument->evaluate());
-    case OPERANDS::pow:
-        throw std::runtime_error("pow function needs two arguments.");
+    // case OPERANDS::pow:
+    //     throw std::runtime_error("pow function needs two arguments.");
     case OPERANDS::sqrt:
         return std::sqrt(argument->evaluate());
     case OPERANDS::abs:
@@ -122,6 +122,19 @@ double FunctionNode::evaluate() const {
     }
 }
 
+class PowFunctionNode : public Node {
+public:
+    PowFunctionNode(std::unique_ptr<Node> base, std::unique_ptr<Node> exponent)
+        : base(std::move(base)), exponent(std::move(exponent)) {}
+
+    virtual double evaluate() const override {
+        return std::pow(base->evaluate(), exponent->evaluate());
+    }
+
+private:
+    std::unique_ptr<Node> base;
+    std::unique_ptr<Node> exponent;
+};
 
 
 
@@ -178,6 +191,20 @@ std::unique_ptr<Node> Parser::factor() {
         auto result = expression();
         eat(OPERANDS::c_bra);
         return result;
+    } else if (token.op == OPERANDS::log || token.op == OPERANDS::sin || token.op == OPERANDS::abs || token.op == OPERANDS::sqrt) {
+        eat(token.op);
+        eat(OPERANDS::o_bra);
+        auto arg = expression();
+        eat(OPERANDS::c_bra);
+        return std::make_unique<FunctionNode>(token.op, std::move(arg));
+    } else if (token.op == OPERANDS::pow) {
+        eat(token.op);
+        eat(OPERANDS::o_bra);
+        auto base = expression();
+        eat(OPERANDS::comma);
+        auto exponent = expression();
+        eat(OPERANDS::c_bra);
+        return std::make_unique<PowFunctionNode>(std::move(base), std::move(exponent));
     } else {
         throw std::runtime_error("Invalid expression.");
     }

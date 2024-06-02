@@ -24,7 +24,7 @@ int main()
     while(true){
         std::string input;
         std::cout << "Insert of print exit: ";
-        std::cin >> input;
+        std::getline(std::cin, input); // Считывание строки до символа новой строки
         if (input == "exit"){
             break;
         }
