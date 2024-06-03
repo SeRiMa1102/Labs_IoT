@@ -116,7 +116,9 @@ private:
 
 class Parser {
 public:
-    Parser(const std::string& str, std::map<std::string, double>& map);
+    Parser(const std::string& str);
+
+    void addNewExpr(const std::string& str);
 
     std::unique_ptr<Node> parse();
 
@@ -130,7 +132,7 @@ private:
     std::unique_ptr<Node> factor();
     void eat(OPERANDS type);
 
-    std::map<std::string, double>& variables;
+    std::map<std::string, double> variables;
 
     Tokenizer tokenizer;
     Token currentToken;

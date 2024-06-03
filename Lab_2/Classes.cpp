@@ -35,9 +35,6 @@ Tokenizer::Tokenizer(const std::string& str) {
             } else {
                 tok.op = OPERANDS::param;
                 tok.param_name = word;
-            TODO: "xxxx";
-                // Возможно, здесь вы захотите выполнить дополнительную обработку
-                // параметров, например, проверку наличия переменных в вашем контексте
             }
         } else {
             switch (str[i]) {
@@ -136,8 +133,6 @@ double FunctionNode::evaluate(const std::map<std::string, double>& variables) co
         return std::log(argument->evaluate(variables));
     case OPERANDS::sin:
         return std::sin(argument->evaluate(variables));
-    // case OPERANDS::pow:
-    //     throw std::runtime_error("pow function needs two arguments.");
     case OPERANDS::sqrt:
         return std::sqrt(argument->evaluate(variables));
     case OPERANDS::abs:
@@ -158,7 +153,13 @@ double PowFunctionNode::evaluate(const std::map<std::string, double>& variables)
 
 
 
-Parser::Parser(const std::string& str, std::map<std::string, double>& map) : variables(map), tokenizer(Tokenizer(str)), current_index(0) {
+Parser::Parser(const std::string& str) : tokenizer(Tokenizer(str)), current_index(0) {
+    currentToken = getNextToken();
+}
+
+void Parser::addNewExpr(const std::string& str){
+    tokenizer = Tokenizer(str);
+    current_index = 0;
     currentToken = getNextToken();
 }
 
@@ -179,13 +180,16 @@ Token Parser::getNextToken(){
 
 std::unique_ptr<Node> Parser::assignment() {
     if (currentToken.op == OPERANDS::param) {
+        if (tokenizer.getToken(current_index).op != OPERANDS::assign){
+            return expression();
+        }
+
         std::string varName = currentToken.param_name;
         eat(OPERANDS::param);
         if (currentToken.op == OPERANDS::assign) {
             eat(OPERANDS::assign);
             return std::make_unique<AssignNode>(varName, expression(), variables);
         } else {
-            // Возвращаем узел переменной, если это не присваивание
             return std::make_unique<ParamNode>(varName);
         }
     }

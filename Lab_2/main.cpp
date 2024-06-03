@@ -7,16 +7,16 @@
 
 
 std::vector<std::string> splitString(const std::string& str, char delimiter) {
-    std::vector<std::string> tokens;
+    std::vector<std::string> for_tokens;
     size_t start = 0;
     size_t end = str.find(delimiter);
     while (end != std::string::npos) {
-        tokens.push_back(str.substr(start, end - start));
+        for_tokens.push_back(str.substr(start, end - start));
         start = end + 1;
         end = str.find(delimiter, start);
     }
-    tokens.push_back(str.substr(start));
-    return tokens;
+    for_tokens.push_back(str.substr(start));
+    return for_tokens;
 }
 
 int main()
@@ -31,15 +31,16 @@ int main()
         }
         char delimiter = ';';
         std::vector<std::string> expressions = splitString(input, delimiter);
-        std::cout << expressions.size() << std::endl;
+        //std::cout << expressions.size() << std::endl;
+
+        Parser parser("");
 
         for (size_t i = 0; i < expressions.size(); i++){
             const auto& item = expressions[i];
             if (item.empty()){
                 continue;
             }
-            std::string res = item;
-            Parser parser(res, params);
+            parser.addNewExpr(item);
             std::unique_ptr<Node> root = parser.parse();
             std::cout << "Result: " << root->evaluate(parser.getVariables()) << std::endl;
 
